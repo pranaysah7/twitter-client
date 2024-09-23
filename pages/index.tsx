@@ -4,13 +4,16 @@ import { BiHash, BiHomeCircle, BiUser } from "react-icons/bi";
 import FeedCards from "@/Components/FeedCards";
 import { SlOptions } from "react-icons/sl";
 import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 import { graphQLClient } from "@/clients/api";
 import { verifyUserGoogleTokenQuery } from "@/graphql/query/user";
 import { useCurrentUser } from "@/hooks/user";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-
+import { BiImage } from "react-icons/bi";
+import { useCreateTweet, useGetAllTweets } from "@/hooks/tweet";
+import FeedCard from "@/Components/FeedCards";
+import { Tweet } from "@/gql/graphql";
 
 interface TwitterSideButton {
   title: string;
@@ -50,7 +53,10 @@ const sidebarMenuItems: TwitterSideButton[] = [
 
 export default function Home() {
   const {user}=useCurrentUser();
-  // console.log(user)
+  const {tweets=[]}=useGetAllTweets();
+  const {mutate}=useCreateTweet();
+  const [content,setContent]=useState<string>("");
+  // console.log(user);
   const queryClient=useQueryClient();
   const handleLoginWithGoogle=useCallback(async(cred:CredentialResponse)=>{
     const googleToken = cred.credential;
@@ -65,6 +71,20 @@ export default function Home() {
     await queryClient.invalidateQueries(['current-user']);
     }
   },[queryClient]);
+  const handleSelectImage=useCallback(()=>{
+    const input = document.createElement('input');
+    input.setAttribute('type','file');
+    input.setAttribute('accept','image/*')
+    input.click();
+
+  },[])
+  const handleCreatetweet=useCallback(()=>{
+   mutate({
+    content
+   })
+   setContent("");
+  },[content,mutate])
+  
   return (
     <div className="flex h-screen w-screen">
       <div className="grid grid-cols-12  h-screen px-40 ">
@@ -104,15 +124,41 @@ export default function Home() {
             </div>)}
         </div>
         <div className="col-span-5 h-screen w-screen overflow-auto">
+            <div className="border border-l-0 border-r-0 border-b-0 border-gray-600 p-3 hover:bg-slate-900 hover:cursor-pointer transition-all hover:font-light max-w-[500px] rounded-lg">
+                <div className="grid grid-cols-12">
+                <div className="col-span-1 rounded-full">
+          {user?.profileImageURL && <Image
+            src={user.profileImageURL}
+            alt="Profile"
+            height={50}
+            width={50}
+            className="rounded-full object-cover"
+          />}
+        </div>
+        <div className="col-span-11">
+              <textarea name="Tweet" id="" rows={5} 
+              value={content}
+              onChange={(e)=>setContent(e.target.value)}
+              className="w-full bg-transparent text-xl px-3 border-b border-slate-400"
+              placeholder="What's happening?"
+              >
+
+              </textarea>
+              <div className="mt-2 flex justify-between">
+              <BiImage className="text-xl" onClick={handleSelectImage}/>
+              <button className="bg-[#1d9bf0] px-4 py-1 font-semibold rounded-full"
+              onClick={handleCreatetweet}
+              >     
+               Post
+                </button>
+              </div>
+        </div>
+                </div>
+            </div>
           <div className="h-screen w-screen">
-            <FeedCards />
-            <FeedCards />
-            <FeedCards />
-            <FeedCards />
-            <FeedCards />
-            <FeedCards />
-            <FeedCards />
-            <FeedCards />
+            {
+              tweets?.map(tweet=><FeedCard key={tweet?.id} data={tweet as Tweet}/>)
+            }
           </div>
         </div>
         <div className="col-span-4 h-full w-fit">
