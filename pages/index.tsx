@@ -9,8 +9,10 @@ import FeedCard from "@/Components/FeedCards";
 import { Tweet } from "@/gql/graphql";
 import TwitterLayout from "@/Components/layout/TwitterLayout";
 import { graphQLClient } from "@/clients/api";
-import { getAllTweetsQuery } from "@/graphql/query/tweet";
+import { getAllTweetsQuery, getSignedUrlTweetQuery } from "@/graphql/query/tweet";
 import { GetServerSideProps } from "next";
+import axios from "axios";
+import toast from "react-hot-toast";
 
 interface HomeProps{
   tweets?:Tweet[];
@@ -18,22 +20,53 @@ interface HomeProps{
 
 export default function Home(props:HomeProps) {
   const { user } = useCurrentUser();
-  // const { tweets = [] } = useGetAllTweets();
+  const { tweets = props.tweets as Tweet[] } = useGetAllTweets();
   const { mutate } = useCreateTweet();
   const [content, setContent] = useState<string>("");
+  const [imageUrl,setImageUrl] = useState<string>("");
+
+
+  const handleInputChangeFile= useCallback((input:HTMLInputElement)=>{
+    return async (event:Event)=>{
+      event.preventDefault();
+      console.log(input.files)
+      const file:File | null | undefined =input.files?.item(0);
+      if(!file)return;
+      const {getSignedUrlForTweet} = await graphQLClient.request(getSignedUrlTweetQuery,{
+        imageName:file.name,
+        imageType: file.type
+      })
+      if(getSignedUrlForTweet){
+        toast.loading('Uploading..',{id:'2'})
+        await axios.put(getSignedUrlForTweet,file,{
+          headers:{
+          'Content-Type':file.type
+          }
+        })
+        toast.success('Completed',{id:'2'})
+        const url = new URL(getSignedUrlForTweet);
+        const myFilePath = `${url.origin}${url.pathname}`
+        setImageUrl(myFilePath);
+      }
+    }
+  },[])
+
   const handleSelectImage = useCallback(() => {
     const input = document.createElement('input');
     input.setAttribute('type', 'file');
     input.setAttribute('accept', 'image/*')
     input.click();
-
-  }, [])
+    const handlerFn = handleInputChangeFile(input);
+    input.addEventListener("change",handlerFn)
+  }, [handleInputChangeFile])
   const handleCreatetweet = useCallback(() => {
     mutate({
-      content
+      content,
+      imageUrl,
     })
     setContent("");
-  }, [content, mutate])
+    setImageUrl("");
+  }, [content, mutate,imageUrl])
 
   return (
     <div className="flex h-screen w-screen">
@@ -58,6 +91,7 @@ export default function Home(props:HomeProps) {
               >
 
               </textarea>
+              {imageUrl && <Image src={imageUrl} alt="Image" width={300} height={300}/>}
               <div className="mt-2 flex justify-between">
                 <BiImage className="text-xl" onClick={handleSelectImage} />
                 <button className="bg-[#1d9bf0] px-4 py-1 font-semibold rounded-full"
@@ -71,7 +105,7 @@ export default function Home(props:HomeProps) {
         </div>
         <div className="h-screen w-screen">
           {
-            props.tweets?.map(tweet => <FeedCard key={tweet?.id} data={tweet as Tweet} />)
+            tweets?.map(tweet => <FeedCard key={tweet?.id} data={tweet as Tweet} />)
           }
         </div>
       </TwitterLayout>

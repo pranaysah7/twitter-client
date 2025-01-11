@@ -14,7 +14,7 @@ interface ServerProps{
 const UserProfilePage:NextPage<ServerProps>=(props)=>{
     const {user}=useCurrentUser();
     const router=useRouter();
-    // console.log(props)
+    console.log(user)
     return (
         
         <div>

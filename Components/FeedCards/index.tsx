@@ -31,6 +31,7 @@ const FeedCard: React.FC<FeedCardProps> = (props) => {
           </Link>
           <p>
             {data.content}
+            {data.imageUrl && <Image src={data.imageUrl} alt="image" width={400} height={400} />}
           </p>
           <div className="flex justify-between mt-2 text-xl items-center">
             <div className="hover:bg-slate-800 rounded-full h-auto w-auto transition-all p-2">

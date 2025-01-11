@@ -76,13 +76,6 @@ const TwitterLayout: React.FC<TwitterLayoutProps> = (props) => {
             await queryClient.invalidateQueries(['current-user']);
         }
     }, [queryClient]);
-    const handleSelectImage = useCallback(() => {
-        const input = document.createElement('input');
-        input.setAttribute('type', 'file');
-        input.setAttribute('accept', 'image/*')
-        input.click();
-
-    }, [])
 
     return (
     <div>
